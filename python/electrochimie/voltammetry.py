@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 import scipy.constants as constants
 import matplotlib.animation as animation
 
-# Definition des fonctions
+# Functions used by the main program 
 def nextC(C,t,D,Cini,E,E0,n,T,deltat,deltax):
     """
     Compute the concentration for the next time interval t+delta t from the concentration given at t,x
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     samplingt = 10000 #sampling for a forward scan
     T = 298.15 #Temperature
     saveMovie = False #save the animation as a mp4 movie
-    movie = "volta.mp4" #filename if the animation is saved
+    movie = "voltammetry.mp4" #filename if the animation is saved
 
     #########################
     #the program starts here

@@ -20,7 +20,7 @@ The numerical simulations come out of
 - Bard & Faulkner : Electrochemical Methods Fundamentals and Applications (2001) annex B
 - Girault : Électrochimie Physique et Analytique (2007) chapter 10 (the book exists in english "ANALYTICAL AND PHYSICAL ELECTROCHEMISTRY"
 
-I took variables with dimensions so as to stick as close as possible to the physical equation and keep them as straightforward as possible
+I took variables with dimensions so as to stick as close as possible to the physical equations and keep them as straightforward as possible
 
 Britz and Strutwolf propose some programs as fortran codes, it is helpful to see how things are done by more seasoned programmers, however, the code is less readable as quite a lot of 'for' are involved where numpy slicing make it much shorter
 A program named ESP  (Electrochemical Simulations Package) also offers some simulations but the source code is not open and needs some compiling and it seems to be hard to run on recent computers
@@ -58,12 +58,12 @@ def nextC(C,t,D,Cini,E,E0,n,T,deltat,deltax):
         #if newC[-1,i] != Cini[i]:
         #    print('the box considered is too short to be considered as a semi-infinite model')
     #now solving the boundary conditions : Nernst equation at the electrodes and conservation of matter
-    #C_red/C_ox = exp (-(E-E0)*nF/RT) = alpha (Nernst) -> C_red(0) - alpha * C_ox(0) = 0
+    #C_red/C_ox = exp (-(E-E0)*nF/RT) = theta (Nernst) -> C_red(0) - theta * C_ox(0) = 0
     #D_red grad(C_red)+ D_ox grad (C_ox)_0 = 0 (conservation of matter) -> -D_red C_red(0) - D_ox C_ox(0) = -D_redC_red(1)-D_oxC_ox(1) (First order approximation for the gradient)
     #In its matrix form AC=B 
-    alpha=np.exp(-(E[t]-E0)*n*F/(R*T))
+    theta=np.exp(-(E[t]-E0)*n*F/(R*T))
     #print(alpha)
-    A = np.array([[1,-alpha],[-D[0],-D[1]]])
+    A = np.array([[1,-theta],[-D[0],-D[1]]])
     B = np.array([0,-D[0]*C[1,t-1,0]-D[1]*C[1,t-1,1]])
     sol = np.linalg.solve(A, B)
     sol = sol.reshape(len(sol), 1)
@@ -164,13 +164,13 @@ def animate(time,C,intensity,E,t,x,convertMoll):
 #Main programm 
 if __name__ == "__main__":
     #Input parameters
-    Ei = 0.5 #Initial potential
-    Ef = 1. #Potential for sweep
+    Ei = 0. #Initial potential
+    Ef = 1.5 #Potential for sweep
     E0 = 0.77 #Standard potential for the couple
     n = 1 #Number of electrons exchanged
     nu = 50.e-3 #sweep rate as V/s
     D_ox = 6.04e-10#10 #diffusion coefficient of the oxydant in m^2/s
-    D_red = 7.09e-10#10 #diffusion coefficient of the reductor in m^2/s
+    D_red = 6.04e-10#10 #diffusion coefficient of the reductor in m^2/s
     C_ox = 0. #initial concentration of the oxydant at the electrode in mol/L
     C_red = 0.05 #initial concentration of the oxydant at the electrode in mol/L
     A = 1e-4 # Area of the electrode in m^2
@@ -179,7 +179,9 @@ if __name__ == "__main__":
     samplingx = 100
     samplingt = 10000 #sampling for a forward scan
     T = 298.15 #Temperature
+    saveCsv= True #save the voltammetry file as a csv file 
     saveMovie = False #save the animation as a mp4 movie
+    saveNpy = False #save the voltammetry file as a npy file (everything, potential, current, concentration) the file can be huge !
     movie = "voltammetry.mp4" #filename if the animation is saved
 
     #########################
@@ -265,6 +267,14 @@ if __name__ == "__main__":
     writermp4 = animation.FFMpegWriter(fps=50) 
     if saveMovie == True:
         ani.save(movie, writer=writermp4)
+    filename ="voltammetry-r-sweep-{}-E0-{}-C_ox-{}-C_red-{}-Ei-{}-Ef-{}".format(nu,E0,C_ox,C_red,Ei,Ef) 
+    if saveEi == True:
+        np.savetxt(filename+'.csv', np.transpose([Efull,i]), delimiter=",")
+    if saveNpy == True:
+        with open(filename+'.npy','wb') as fileOutput:
+            np.save(fileOutput, [Efull,i,t])
+            np.save(fileOutput, x)
+            np.save(fileOutput, C  )
     plt.show()
     pass
 

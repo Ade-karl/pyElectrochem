@@ -34,6 +34,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.constants as constants
 import matplotlib.animation as animation
+import argparse
 
 # Functions used by the main program 
 def nextC(C,t,D,Cini,E,E0,n,T,deltat,deltax):
@@ -164,26 +165,28 @@ def animate(time,C,intensity,E,t,x,convertMoll):
 #Main programm 
 if __name__ == "__main__":
     #Input parameters
-    Ei = 0. #Initial potential
-    Ef = 1.5 #Potential for sweep
-    E0 = 0.77 #Standard potential for the couple
-    n = 1 #Number of electrons exchanged
-    nu = 50.e-3 #sweep rate as V/s
-    D_ox = 6.04e-10#10 #diffusion coefficient of the oxydant in m^2/s
-    D_red = 6.04e-10#10 #diffusion coefficient of the reductor in m^2/s
-    C_ox = 0. #initial concentration of the oxydant at the electrode in mol/L
-    C_red = 0.05 #initial concentration of the oxydant at the electrode in mol/L
-    A = 1e-4 # Area of the electrode in m^2
-    l = 5e-4 #length in meter
-    nCycle = 1 #number of cycles between Ei and Ef, it should be a multiple of 0.5
-    samplingx = 100
-    samplingt = 10000 #sampling for a forward scan
-    T = 298.15 #Temperature
-    saveCsv= True #save the voltammetry file as a csv file 
-    saveMovie = False #save the animation as a mp4 movie
-    saveNpy = False #save the voltammetry file as a npy file (everything, potential, current, concentration) the file can be huge !
-    movie = "voltammetry.mp4" #filename if the animation is saved
-
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-Ei", "--initialPotential", type=float, default = 0., help="Initial potential in Volt",dest="Ei")
+    parser.add_argument("-Ef", "--sweepPotential"  , type=float, default = 1.5, help="Other end of the potential ramp in Volt",dest="Ef")
+    parser.add_argument("-E0", "--couplePotential"  , type=float, default = 0.77, help="Redox potential of the couple vs ESH",dest="E0")
+    parser.add_argument("-n", "--nbElectrons"  , type=int, default = 1, help="Number of electrons exchanged during the oxydo reduction process",dest="n")
+    parser.add_argument("-nu", "--sweepRate"  , type=float, default = 50.e-3, help="sweep rate in V/s",dest="nu")
+    parser.add_argument("-D_ox", "--DiffusionCoefficientOxidant"  , type=float, default = 6.04e-10, help="Diffusion coefficient of the oxydant in m^2/s",dest="D_ox")
+    parser.add_argument("-D_red", "--DiffusionCoefficientiReductor"  , type=float, default = 6.04e-10, help="Diffusion coefficient of the reductor in m^2/s",dest="D_red")
+    parser.add_argument("-C_ox", "--ConcentrationOxidant"  , type=float, default = 0.0, help="Concentration of the oxidant in mol/L",dest="C_ox")
+    parser.add_argument("-C_red", "--ConcentrationReductor"  , type=float, default = 0.05, help="Concentration of the reductor in mol/L",dest="C_red")
+    parser.add_argument("-A", "--Area"  , type=float, default = 1.e-4, help="Area of the electrode in m^2",dest="A")
+    parser.add_argument("-l", "--length"  , type=float, default = 5.e-4, help="Length of the simulation box",dest="l")
+    parser.add_argument("-nCycle", "--nbCycle"  , type=float, default = 1., help="number of cycles between Ei and Ef, it should be a multiple of 0.5",dest="nCycle")
+    parser.add_argument("-samplingx", "--samplingx"  , type=int, default = 100, help="Sampling of the simulation box",dest="samplingx")
+    parser.add_argument("-samplingt", "--samplingt"  , type=int, default = 10000, help="Sampling of a forward scan",dest="samplingt")
+    parser.add_argument("-T", "--Temperature"  , type=float, default = 298.15, help="Temperature in Kelvin",dest="T")
+    parser.add_argument("-csv", "--saveCsv"    , type=bool, default = True, help="save the i=f(E) curve as a csv file",dest="saveCsv")
+    parser.add_argument("-mp4", "--saveMovie"  , type=bool, default = False, help="save the animation as a mp4 file",dest="saveMovie")
+    parser.add_argument("-movie", "--movieName"    , type=str, default = 'voltammmetry.mp4', help="name of the voltammetry file",dest="movie")
+    parser.add_argument("-npy", "--saveNpy"    , type=bool, default = False, help="Save all the produced data as a numpy file, (i, V, t, x, C=f(x,t), the file produced can be really huge",dest="saveNpy")
+    args = parser.parse_args()
+    
     #########################
     #the program starts here
     #########################
@@ -191,39 +194,39 @@ if __name__ == "__main__":
     R = constants.R
     convertMoll = 1000 #to convert mol/L to mol/m^3
     #length of a forward scan
-    halfPer= halfPeriod(Ei,Ef,nu) 
+    halfPer= halfPeriod(args.Ei,args.Ef,args.nu) 
     #Creating the x values at which the concentration wil be computed each step.    
-    x,deltax = np.linspace(0,l,samplingx,retstep=True)
+    x,deltax = np.linspace(0,args.l,args.samplingx,retstep=True)
     #Splitting the time to make it correspond to the defined sampling and number of cycles
-    sizet = int(samplingt*2*nCycle)+1
-    t,deltat = np.linspace(0,2*nCycle*halfPer,sizet,retstep=True)
+    sizet = int(args.samplingt*2*args.nCycle)+1
+    t,deltat = np.linspace(0,2*args.nCycle*halfPer,sizet,retstep=True)
     #Creating the seesaw voltage    
-    Efull = potential(Ei,Ef,nu,samplingt,nCycle)
+    Efull = potential(args.Ei,args.Ef,args.nu,args.samplingt,args.nCycle)
     #Diffusion coefficients for all the species
-    D = np.array([D_red,D_ox])
-    Cini = convertMoll*np.array([C_red,C_ox])
-    C = np.zeros((samplingx,sizet,2)) 
+    D = np.array([args.D_red,args.D_ox])
+    Cini = convertMoll*np.array([args.C_red,args.C_ox])
+    C = np.zeros((args.samplingx,sizet,2)) 
     #Initial condition for Cred(x,0) : C(x,0,0) = C_red 
-    C[:,0,0] = C_red* convertMoll * np.ones(samplingx)
+    C[:,0,0] = args.C_red* convertMoll * np.ones(args.samplingx)
     #Initial condition for Cox(x,0) : C(x,0,1) = C_ox 
-    C[:,0,1] = C_ox* convertMoll * np.ones(samplingx)
+    C[:,0,1] = args.C_ox* convertMoll * np.ones(args.samplingx)
 
-    DM = np.minimum(D_ox,D_red)*deltat/(deltax**2 )
+    DM = np.minimum(args.D_ox,args.D_red)*deltat/(deltax**2 )
     print('DM : {}'.format(DM))
     if DM > 0.5:
         print("the sampling is too scarce, choose more wisely : decrease t sampling or raise x sampling")
     #Frame interval to have an animation roughly at 50 fps
     frameselect = int(sizet/(50*t[-1]))
     print('display every {} step, length(s) {}, sizet {} '.format(frameselect,t[-1], sizet))
-    print('D*T {} , length^2 {}'.format(np.max(D)*t[-1], l**2))
+    print('D*T {} , length^2 {}'.format(np.max(D)*t[-1], args.l**2))
     
 
     #computation of the concentration at each position and time
     for time in range(1,sizet):
-        C[:,time,:]=nextC(C,time,D,Cini,Efull,E0,n,T,deltat,deltax)
+        C[:,time,:]=nextC(C,time,D,Cini,Efull,args.E0,args.n,args.T,deltat,deltax)
 
     #Computation of the current from the concentration profiles
-    i = intensity(C,x,deltax,deltat,n,A,D)
+    i = intensity(C,x,deltax,deltat,args.n,args.A,D)
    
     #Plotting of all the results
     fig, axes = plt.subplots(2,2, figsize =(10,6))
@@ -231,8 +234,8 @@ if __name__ == "__main__":
     ax1 = plt.subplot(2,2,1)
     ax1.set_xlabel('Distance')
     ax1.set_ylabel('Concentration')
-    ax1.set_xlim(0.,l)
-    ax1.set_ylim(0.,C_red*1.05)
+    ax1.set_xlim(0.,args.l)
+    ax1.set_ylim(0.,args.C_red*1.05)
     #i, E = ft(t)
     ax2 = plt.subplot(2,2,2)
     ax2.set_xlabel('time (s)')
@@ -265,16 +268,15 @@ if __name__ == "__main__":
     ani = animation.FuncAnimation(fig, animate, fargs =(C,i,Efull,t,x,convertMoll), blit=True , frames=range(0,sizet+1,frameselect),interval=20)#,save_count=int(sizet/frameselect))
     #write the file as a mp4
     writermp4 = animation.FFMpegWriter(fps=50) 
-    if saveMovie == True:
-        ani.save(movie, writer=writermp4)
-    filename ="voltammetry-r-sweep-{}-E0-{}-C_ox-{}-C_red-{}-Ei-{}-Ef-{}".format(nu,E0,C_ox,C_red,Ei,Ef) 
-    if saveEi == True:
+    if args.saveMovie == True:
+        ani.save(args.movie, writer=writermp4)
+    filename ="voltammetry-r-sweep-{}-E0-{}-C_ox-{}-C_red-{}-args.Ei-{}-Ef-{}".format(args.nu,args.E0,args.C_ox,args.C_red,args.Ei,args.Ef) 
+    if args.saveCsv == True:
         np.savetxt(filename+'.csv', np.transpose([Efull,i]), delimiter=",")
-    if saveNpy == True:
+    if args.saveNpy == True:
         with open(filename+'.npy','wb') as fileOutput:
             np.save(fileOutput, [Efull,i,t])
             np.save(fileOutput, x)
             np.save(fileOutput, C  )
     plt.show()
     pass
-

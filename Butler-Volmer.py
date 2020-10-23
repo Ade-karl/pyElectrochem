@@ -21,6 +21,8 @@ Informations
 ------------
 Author : Martin Vérot  from the ENS de Lyon, France, with the help of some scripts to create the buttons and sliders taken from https://github.com/araoux/python_agregation 
 Licence : Creative Commons CC-BY-NC-SA 4.0 
+
+WARNING this program requires the widgets.py file to work
 """
 
 import matplotlib.pyplot as plt

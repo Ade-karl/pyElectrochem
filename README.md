@@ -9,14 +9,18 @@ This was made for a purely educational purpose, use it at your own risk
 People interested can also have a look at Soft Potato :
 https://github.com/oliverrdz/SoftPotato (Created by Oliver Rodríguez)
 
-#Voltammetry with a Nernstian boundary condition
-Use voltammetry.py, some help is given with "./voltammetry.py -h" about all the arguments and default values used. You can save a movie, a csv file, a numpy version for further use.
+##Voltammetry with a Nernstian boundary condition
 
-#Voltammetry for a quasi reversible boundary condition
-Use "voltammetry-quasi-reversible.py" some help is given with "voltammetry-quasi-reversible.py -h" about all the arguments and default values used. 
+Use [voltammetry-nernst/voltammetry.py], some help is given with "./voltammetry.py -h" about all the arguments and default values used. You can save a movie, a csv file, a numpy version for further use.
 
-#Chronoamperometry
-Use "chronoamperometry-v1.py". The boundary condition imposed is to set the conventration to zero at the electrode.
+##Voltammetry for a quasi reversible boundary condition
 
-#Butler Volmer
-Use "Butler-Volmer.py". Requires "widgets.py". Prefer the use of "python3 Butler-Volmer.py" over "./Butler-Volmer.py" to exectute the script 
+Use "[voltammetry-quasi-reversible/voltammetry-quasi-reversible.py]" some help is given with "voltammetry-quasi-reversible.py -h" about all the arguments and default values used. 
+
+##Chronoamperometry
+
+Use "[chronoamperometry/chronoamperometry.py]". The boundary condition imposed is to set the conventration to zero at the electrode.
+
+##Butler Volmer
+
+Use "[Butler-Volmer/Butler-Volmer.py]". Requires "[Butler-Volmer/widgets.py]". Prefer the use of "python3 Butler-Volmer.py" over "./Butler-Volmer.py" to exectute the script 

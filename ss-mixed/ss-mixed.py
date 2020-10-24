@@ -10,7 +10,7 @@ For an unknown reason, running directly this script with ./Butler-Volmer.py gene
 
 Description
 ------------
-This program simulates the evolution of the current for a system where both the diffusion and the kinetic regime apply 
+This program simulates the evolution of the current for a system where both the diffusion and the kinetic regime apply. The equations are taken from Girault "Analytical and physical electrochemistry" 
 
 The diffusion coefficient ratio,  the concentration ratio, the transfer coefficient and the current exhange can be varied
 
@@ -38,7 +38,7 @@ from matplotlib import rc
 #rc('text', usetex=True)
 title = "Current for a system under both diffusion and kinetic control"
 
-description = """See equations 7.12, 7.13, 7.59
+description = """See equations 7.12, 7.13, 7.59 of Girault for the definition of the terms
 
 $\dfrac{1}{I}=\dfrac{1}{nFA\left(k_aC_R(\infty)-k_cC_O(\infty)\\right)}\left( 1 + \dfrac{k_aD_R^{-2/3}+k_cD_O^{-2/3}}{0.62\\nu^{-1/6}\omega^{1/2}}  \\right)$
 
@@ -66,19 +66,22 @@ C0 = 0.1 #concentration of the oxidant= 1.
 F = constants.physical_constants['Faraday constant'][0]
 R = constants.R
 
+
 #===========================================================
 # --- Functions to plot-------------------------------------
 #===========================================================
-def kanodicreduced(E0,V,k0, alpha,n,F,R,T):
+def kanodicreduced(E0,V,alpha,n,F,R,T):
     """
-    anodic kinetic constant
+    anodic kinetic constant without the k0 prefactor see 7.16 of Girault
     """
-    return np.exp(alpha * n*F*(V-E0)/(R*T))
-def kcathodicreduced(E0,V,k0, alpha,n,F,R,T):
+    NernstCoeff = n * F / (R * T)
+    return np.exp(alpha * (V-E0)*NernstCoeff)
+def kcathodicreduced(E0,V,alpha,n,F,R,T):
     """
-    cathodic kinetic constant
+    cathodic kinetic constant without the k0 prefactor see 7.16 of Girault
     """
-    return np.exp(-(1-alpha) * n*F*(V-E0)/(R*T))
+    NernstCoeff = n * F / (R * T)
+    return np.exp(-(1-alpha) * (V-E0)*NernstCoeff)
         
 def layer(omega, Dox, nu):
     """
@@ -89,30 +92,38 @@ def layer(omega, Dox, nu):
     """
     return 1.61 * Dox**(1./3.)*omega**(-1./2.)*nu**(1./6.)
 
-def IcathodicMax(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0, A):
+def IcathodicMax(n,F,A,Dox,C0,nu,omega):
     """
     maximum cathodic current
     """
-    fk0 = 10**k0
     delta = layer(omega,Dox,nu)
     Icmax= n * F * A * Dox * C0 / delta
     return Icmax
          
-         
-
-def current(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0, A):
+def current(E0, ratD, ratC, alpha, k0, V,n,F,R,T,nu,omega,Dox,C0, A):
     """
     Current expression
-     ratm is the ratio m_R/m_O
+     E0 is the standard potential of the couple
+     ratD is the ratio D_R/D_O
      ratC is the concentration ratio c_O/c_R
+     alpha is the transfer coefficient
+     k0 the standard rate constant
      V is the potential
      n the number of exchanged electrons
+     F,R,T the faraday constant, the gas constant and the temperature respectively
+     nu the kinematic viscosity of water in m^2/s
+     omega the rotation speed of the rotating disk electrode in rad/s 
+     Dox the diffusion coefficient of the oxidant
+     C0 the concetration of the oxidant
+     A the electrode area
+
+     see equation 7.55 of Girault
     """
     fk0 = 10.**k0
     delta = layer(omega,Dox,nu)
-    Icmax=IcathodicMax(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0, A) 
-    ka =fk0 * kanodicreduced(E0,V,k0, alpha,n,F,R,T) 
-    kc =fk0 * kcathodicreduced(E0,V,k0, alpha,n,F,R,T) 
+    Icmax=IcathodicMax(n,F,A,Dox,C0,nu,omega)
+    ka =fk0 * kanodicreduced(E0,V, alpha,n,F,R,T) 
+    kc =fk0 * kcathodicreduced(E0,V, alpha,n,F,R,T) 
     kineticTerm =  n*F*A* C0*  (ka*ratC- kc )     
     diffusionTerm = 1. + delta /Dox * (ka /ratD +kc )
     I = kineticTerm /diffusionTerm
@@ -120,44 +131,69 @@ def current(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0, A):
 
 
 
-def currentButlerVolmer(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A):
+def currentButlerVolmer(E0, ratC, alpha, k0, V,n,F,R,T,nu,omega,Dox,C0,A):
     """
-    Expression of the current for the Butler-VOlmer equation
+    Expression of the current for the Butler-Volmer equation
+    The current is normalized against the maximum cathodic current in a diffusion regime
+     E0 is the standard potential of the couple
+     ratC is the concentration ratio c_O/c_R
+     k0 the standard rate constant
+     V is the potential
+     n the number of exchanged electrons
+     F,R,T the faraday constant, the gas constant and the temperature respectively
+     nu the kinematic viscosity of water in m^2/s
+     omega the rotation speed of the rotating disk electrode in rad/s 
+     Dox the diffusion coefficient of the oxidant
+     C0 the concetration of the oxidant
+     A the electrode area
+
+     see equation 7.16 of Girault
     """
     #cathodic limit current
-    Icmax=IcathodicMax(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0, A) 
+    Icmax= IcathodicMax(n,F,A,Dox,C0,nu,omega)
     fk0 = 10**k0
-    ka = kanodicreduced(E0,V,k0, alpha,n,F,R,T) 
-    kc = kcathodicreduced(E0,V,k0, alpha,n,F,R,T) 
-    i=n * F * A * fk0 *C0* (ratC * ka - kc ) 
+    ka = kanodicreduced(E0,V,alpha,n,F,R,T) 
+    kc = kcathodicreduced(E0,V,alpha,n,F,R,T) 
+    i = n * F * A * fk0 *C0* (ratC * ka - kc ) 
     return i/Icmax
 
-def Ehalf(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A):
+def Ehalf(E0, ratD, n,F,R,T,nu,omega,Dox,C0):
     """
     Compute the half potential for the system
+        as defined by equation 7.35 of Girault
     """
     #E_1/2
     Ehalf = E0 + R*T/(n*F) * np.log(ratD)
     return Ehalf
 
 
-def currentDiff(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A):
+def currentDiff(E0, ratD, ratC, alpha, k0, V,n,F,R,T,nu,omega,Dox,C0,A):
     """
     Current expression
+     E0 is the standard potential of the couple
      ratD is the ratio D_R/D_O
      ratC is the concentration ratio c_O/c_R
+     k0 the standard rate constant
      V is the potential
      n the number of exchanged electrons
-    """
-    #cathodic limit current
-    Icmax=IcathodicMax(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0, A) 
+     F,R,T the faraday constant, the gas constant and the temperature respectively
+     nu the kinematic viscosity of water in m^2/s
+     omega the rotation speed of the rotating disk electrode in rad/s 
+     Dox the diffusion coefficient of the oxidant
+     C0 the concetration of the oxidant
+     A the electrode area
     
+    as defined by equation 7.34 of Girault
+    """
+
+    #cathodic limit current
+    Icmax= IcathodicMax(n,F,A,Dox,C0,nu,omega)
     delta = layer(omega,Dox,nu)
     #anodic limit current
     Ida = n * F * A * Dox*  ratD *ratC*C0/delta 
     #cathodic limit current
     Idc = -n * F * A* Dox* C0/delta
-    Eh = Ehalf(E0, ratD, ratC,alpha,k0, V,n,T,F,R,nu,omega,Dox,C0,A)
+    Eh = Ehalf(E0, ratD, n,F,R,T,nu,omega,Dox,C0)
     expTerm = np.exp(n*F/(R*T) * (V-Eh))
     return 1/(Icmax*(1+expTerm))*(Idc+Ida*expTerm) 
 
@@ -171,9 +207,9 @@ def currentDiff(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A):
 
 # This function is called when the sliders are changed 
 def plot_data(alpha,k0,ratD,ratC):
-    lines['i-BV'].set_data(V,currentButlerVolmer(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A) )
-    lines['i-Diff'].set_data(V,currentDiff(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A) )
-    lines['i'].set_data(V,current(E0, ratD, ratC, alpha, k0, V,n,T,F,R,nu,omega,Dox,C0,A) )
+    lines['i-BV'].set_data(V,currentButlerVolmer(E0, ratC, alpha, k0, V,n,F,R,T,nu,omega,Dox,C0,A) )
+    lines['i-Diff'].set_data(V,currentDiff(E0, ratD, ratC, alpha, k0, V,n,F,R,T,nu,omega,Dox,C0,A) )
+    lines['i'].set_data(V,current(E0, ratD, ratC, alpha, k0, V,n,F,R,T,nu,omega,Dox,C0,A) )
     fig.canvas.draw_idle()
 
 

@@ -92,6 +92,7 @@ if __name__ == "__main__":
     tfin = 5 #ending time in seconds
     samplingx = 250
     samplingt = 1000
+    n = 1
     T = 298.15 #Temperature
     saveMovie = False #save the animation as a mp4 movie
     movie = "chronoamperometry.mp4" #filename if the animation is saved
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     x,deltax = np.linspace(0,l,samplingx,retstep=True)
     t,deltat = np.linspace(0,tfin,samplingt,retstep=True)
 
-    DM = np.minimum(D_ox,D_red)*deltat/(deltax**2 )
+    DM = D_red*deltat/(deltax**2 )
     print('DM : {}'.format(DM))
     if DM > 0.5:
         print("the sampling is too scarce, choose more wisely")
